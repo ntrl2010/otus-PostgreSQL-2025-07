@@ -1,0 +1,336 @@
+serge@tpt480:~$ ps
+ps             ps2pdf         ps2pdf14       ps2ps          psfaddtable    psfxtable      psql
+ps2ascii       ps2pdf12       ps2pdfwr       ps2ps2         psfgettable    psicc          pstree
+ps2epsi        ps2pdf13       ps2pk          ps2txt         psfstriptable  pslog          pstree.x11
+serge@tpt480:~$ psql 
+Warning: No existing cluster is suitable as a default target. Please see man pg_wrapper(1) how to specify one.
+Error: You must install at least one postgresql-client-<version> package
+serge@tpt480:~$ psql  -h
+Error: You must install at least one postgresql-client-<version> package
+serge@tpt480:~$ psql --help
+Warning: No existing cluster is suitable as a default target. Please see man pg_wrapper(1) how to specify one.
+Error: You must install at least one postgresql-client-<version> package
+serge@tpt480:~$ psql --help
+psql is the PostgreSQL interactive terminal.
+
+Usage:
+  psql [OPTION]... [DBNAME [USERNAME]]
+
+General options:
+  -c, --command=COMMAND    run only single command (SQL or internal) and exit
+  -d, --dbname=DBNAME      database name to connect to (default: "serge")
+  -f, --file=FILENAME      execute commands from file, then exit
+  -l, --list               list available databases, then exit
+  -v, --set=, --variable=NAME=VALUE
+                           set psql variable NAME to VALUE
+                           (e.g., -v ON_ERROR_STOP=1)
+  -V, --version            output version information, then exit
+  -X, --no-psqlrc          do not read startup file (~/.psqlrc)
+  -1 ("one"), --single-transaction
+                           execute as a single transaction (if non-interactive)
+  -?, --help[=options]     show this help, then exit
+      --help=commands      list backslash commands, then exit
+      --help=variables     list special variables, then exit
+
+Input and output options:
+  -a, --echo-all           echo all input from script
+  -b, --echo-errors        echo failed commands
+  -e, --echo-queries       echo commands sent to server
+  -E, --echo-hidden        display queries that internal commands generate
+  -L, --log-file=FILENAME  send session log to file
+  -n, --no-readline        disable enhanced command line editing (readline)
+  -o, --output=FILENAME    send query results to file (or |pipe)
+  -q, --quiet              run quietly (no messages, only query output)
+  -s, --single-step        single-step mode (confirm each query)
+  -S, --single-line        single-line mode (end of line terminates SQL command)
+
+Output format options:
+  -A, --no-align           unaligned table output mode
+      --csv                CSV (Comma-Separated Values) table output mode
+  -F, --field-separator=STRING
+                           field separator for unaligned output (default: "|")
+  -H, --html               HTML table output mode
+  -P, --pset=VAR[=ARG]     set printing option VAR to ARG (see \pset command)
+  -R, --record-separator=STRING
+                           record separator for unaligned output (default: newline)
+  -t, --tuples-only        print rows only
+  -T, --table-attr=TEXT    set HTML table tag attributes (e.g., width, border)
+  -x, --expanded           turn on expanded table output
+  -z, --field-separator-zero
+                           set field separator for unaligned output to zero byte
+  -0, --record-separator-zero
+                           set record separator for unaligned output to zero byte
+
+Connection options:
+  -h, --host=HOSTNAME      database server host or socket directory (default: "local socket")
+  -p, --port=PORT          database server port (default: "5432")
+  -U, --username=USERNAME  database user name (default: "serge")
+  -w, --no-password        never prompt for password
+  -W, --password           force password prompt (should happen automatically)
+
+For more information, type "\?" (for internal commands) or "\help" (for SQL
+commands) from within psql, or consult the psql section in the PostgreSQL
+documentation.
+
+Report bugs to <pgsql-bugs@lists.postgresql.org>.
+PostgreSQL home page: <https://www.postgresql.org/>
+serge@tpt480:~$ psql -h localhost -U postgres 
+psql: error: connection to server at "localhost" (127.0.0.1), port 5432 failed: Connection refused
+	Is the server running on that host and accepting TCP/IP connections?
+serge@tpt480:~$ psql -h localhost -U postgres 
+Password for user postgres: 
+psql (16.9 (Ubuntu 16.9-0ubuntu0.24.04.1), server 15.4 (Debian 15.4-1.pgdg120+1))
+Type "help" for help.
+
+postgres=# show transaction isolation level
+postgres-# ;
+ transaction_isolation 
+-----------------------
+ read committed
+(1 row)
+
+postgres=# DROP TABLE IF EXISTS persons;
+CREATE TABLE persons (
+    id SERIAL PRIMARY KEY,
+    first_name varchar(50),
+    last_name varchar(50)
+);
+NOTICE:  table "persons" does not exist, skipping
+DROP TABLE
+CREATE TABLE
+postgres=# INSERT INTO persons (first_name, last_name) VALUES
+('Ivan', 'Ivanov'),
+('Petr', 'Petrov'),
+('Anna', 'Smirnova');
+INSERT 0 3
+postgres=# select * from persons;
+ id | first_name | last_name 
+----+------------+-----------
+  1 | Ivan       | Ivanov
+  2 | Petr       | Petrov
+  3 | Anna       | Smirnova
+(3 rows)
+
+postgres=# show transaction isolation level
+;
+ transaction_isolation 
+-----------------------
+ read committed
+(1 row)
+
+postgres=# BEGIN;
+BEGIN
+postgres=*# UPDATE persons SET last_name = 'Updated' WHERE first_name = 'Petr';
+UPDATE 1
+postgres=*# select * from persons;
+ id | first_name | last_name 
+----+------------+-----------
+  1 | Ivan       | Ivanov
+  3 | Anna       | Smirnova
+  2 | Petr       | Updated
+(3 rows)
+
+postgres=*# SELECT last_name FROM persons WHERE first_name = 'Petr';
+ last_name 
+-----------
+ Updated
+(1 row)
+
+postgres=*# commit;
+COMMIT
+postgres=# BEGIN ISOLATION LEVEL REPEATABLE READ;
+BEGIN
+postgres=*# SELECT last_name FROM persons WHERE first_name = 'Anna';
+ last_name 
+-----------
+ Smirnova
+(1 row)
+
+postgres=*# BEGIN ISOLATION LEVEL REPEATABLE READ;
+WARNING:  there is already a transaction in progress
+BEGIN
+postgres=*# UPDATE persons SET last_name = 'Updated-REPEATABLE READ' WHERE first_name = 'anna';
+UPDATE 0
+postgres=*# UPDATE persons SET last_name = 'Updated-REPEATABLE READ' WHERE first_name = 'Anna';
+UPDATE 1
+postgres=*# commit;
+COMMIT
+postgres=# select * from persons;
+ id | first_name |        last_name        
+----+------------+-------------------------
+  1 | Ivan       | Ivanov
+  3 | Anna       | Updated-REPEATABLE READ
+  2 | Petr       | Updated
+(3 rows)
+
+postgres=# BEGIN;
+BEGIN
+postgres=*# SELECT last_name FROM persons WHERE first_name = 'Petr';
+ last_name 
+-----------
+ Updated
+(1 row)
+
+postgres=*# SELECT last_name FROM persons WHERE first_name = 'Petr';
+  last_name   
+--------------
+ Updated11:38
+(1 row)
+
+postgres=*# commit;
+COMMIT
+postgres=# BEGIN ISOLATION LEVEL REPEATABLE READ;
+BEGIN
+postgres=*# SELECT last_name FROM persons WHERE first_name = 'Anna';
+        last_name        
+-------------------------
+ Updated-REPEATABLE READ
+(1 row)
+
+postgres=*# SELECT last_name FROM persons WHERE first_name = 'Anna';
+        last_name        
+-------------------------
+ Updated-REPEATABLE READ
+(1 row)
+
+postgres=*# COMMIT;
+COMMIT
+postgres=# SELECT last_name FROM persons WHERE first_name = 'Anna';
+ last_name 
+-----------
+ Changed
+(1 row)
+
+postgres=# show transaction isolation level;
+ transaction_isolation 
+-----------------------
+ read committed
+(1 row)
+
+postgres=# show transaction isolation level;
+ transaction_isolation 
+-----------------------
+ read committed
+(1 row)
+
+postgres=# begin;
+BEGIN
+postgres=*# insert into persons(first_name, second_name) values('sergey', 'sergeev');
+ERROR:  column "second_name" of relation "persons" does not exist
+LINE 1: insert into persons(first_name, second_name) values('sergey'...
+                                        ^
+postgres=!# insert into persons(first_name, last_name) values('sergey', 'sergeev');
+ERROR:  current transaction is aborted, commands ignored until end of transaction block
+postgres=!# select * from persons;
+ERROR:  current transaction is aborted, commands ignored until end of transaction block
+postgres=!# insert into persons(first_name, last_name) values('sergey', 'sergeev');
+ERROR:  current transaction is aborted, commands ignored until end of transaction block
+postgres=!# commit
+postgres-!# ;
+ROLLBACK
+postgres=# 
+postgres=# select * from persons;
+ id | first_name |  last_name   
+----+------------+--------------
+  1 | Ivan       | Ivanov
+  2 | Petr       | Updated11:38
+  3 | Anna       | Changed
+(3 rows)
+
+postgres=# insert into persons(first_name, last_name) values('sergey', 'sergeev');
+INSERT 0 1
+postgres=# select * from persons;
+ id | first_name |  last_name   
+----+------------+--------------
+  1 | Ivan       | Ivanov
+  2 | Petr       | Updated11:38
+  3 | Anna       | Changed
+  4 | sergey     | sergeev
+(4 rows)
+
+postgres=# begin;
+BEGIN
+postgres=*# 
+postgres=*# insert into persons(first_name, last_name) values('sergey2', 'sergeev');
+INSERT 0 1
+postgres=*# select * from persons;
+ id | first_name |  last_name   
+----+------------+--------------
+  1 | Ivan       | Ivanov
+  2 | Petr       | Updated11:38
+  3 | Anna       | Changed
+  4 | sergey     | sergeev
+  5 | sergey2    | sergeev
+(5 rows)
+
+postgres=*# select * from persons;
+ id | first_name |  last_name   
+----+------------+--------------
+  1 | Ivan       | Ivanov
+  2 | Petr       | Updated11:38
+  3 | Anna       | Changed
+  4 | sergey     | sergeev
+  5 | sergey2    | sergeev
+(5 rows)
+
+postgres=*# commit;
+COMMIT
+postgres=# select * from persons;
+ id | first_name |  last_name   
+----+------------+--------------
+  1 | Ivan       | Ivanov
+  2 | Petr       | Updated11:38
+  3 | Anna       | Changed
+  4 | sergey     | sergeev
+  5 | sergey2    | sergeev
+(5 rows)
+
+postgres=# show transaction isolation level;
+ transaction_isolation 
+-----------------------
+ read committed
+(1 row)
+
+postgres=# begin;
+BEGIN
+postgres=*# insert into persons(first_name, last_name) values('sergey3', 'sergeev');
+INSERT 0 1
+postgres=*# commit;
+COMMIT
+postgres=# select * from persons;
+ id | first_name |  last_name   
+----+------------+--------------
+  1 | Ivan       | Ivanov
+  2 | Petr       | Updated11:38
+  3 | Anna       | Changed
+  4 | sergey     | sergeev
+  5 | sergey2    | sergeev
+  6 | sergey3    | sergeev
+(6 rows)
+
+postgres=# set transaction isolation level repeatable read;
+WARNING:  SET TRANSACTION can only be used in transaction blocks
+SET
+postgres=# insert into persons(first_name, last_name) values('sveta', 'svetova');
+INSERT 0 1
+postgres=# begin;
+BEGIN
+postgres=*# insert into persons(first_name, last_name) values('sveta2', 'svetova');
+INSERT 0 1
+postgres=*# commit;
+COMMIT
+postgres=# show transaction isolation level;
+ transaction_isolation 
+-----------------------
+ read committed
+(1 row)
+
+postgres=# begin;
+BEGIN
+postgres=*# set transaction isolation level repeatable read;
+SET
+postgres=*# insert into persons(first_name, last_name) values('sveta3', 'svetova');
+INSERT 0 1
+postgres=*# commit;
+COMMIT
+postgres=# 
