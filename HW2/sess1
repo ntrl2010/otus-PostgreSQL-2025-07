@@ -1,0 +1,70 @@
+serge@tpt480:~$ psql -h 172.30.42.220 -U postgres_user -p 5430
+Password for user postgres_user: 
+psql: error: connection to server at "172.30.42.220", port 5430 failed: FATAL:  database "postgres_user" does not exist
+serge@tpt480:~$ psql -h 172.30.42.220 -U postgres_user -p 5430 -d postgres_db
+Password for user postgres_user: 
+psql (16.9 (Ubuntu 16.9-0ubuntu0.24.04.1), server 15.13 (Debian 15.13-1.pgdg130+1))
+Type "help" for help.
+
+postgres_db=# \l
+postgres_db=# \c
+psql (16.9 (Ubuntu 16.9-0ubuntu0.24.04.1), server 15.13 (Debian 15.13-1.pgdg130+1))
+You are now connected to database "postgres_db" as user "postgres_user".
+postgres_db=# \conn
+\connect   \conninfo  
+postgres_db=# \conninfo 
+You are connected to database "postgres_db" as user "postgres_user" on host "172.30.42.220" at port "5430".
+postgres_db=# DROP TABLE IF EXISTS persons;
+CREATE TABLE persons (
+    id SERIAL PRIMARY KEY,
+    first_name varchar(50),
+    last_name varchar(50)
+);
+
+INSERT INTO persons (first_name, last_name) VALUES
+('Ivan', 'Ivanov'),
+('Petr', 'Petrov'),
+('Anna', 'Smirnova');
+
+BEGIN;
+UPDATE persons SET last_name = 'Updated' WHERE first_name = 'Petr';
+
+commit;
+NOTICE:  table "persons" does not exist, skipping
+DROP TABLE
+CREATE TABLE
+INSERT 0 3
+BEGIN
+UPDATE 1
+COMMIT
+postgres_db=# \t
+Tuples only is on.
+postgres_db=# \dl
+
+postgres_db=# \t;
+invalid command \t;
+Try \? for help.
+postgres_db=# \dt
+ public | persons | table | postgres_user
+
+postgres_db=# 
+postgres_db=# 
+postgres_db=# \q
+serge@tpt480:~$ psql -h 172.30.42.220 -U postgres_user -p 5430 -d postgres_db
+Password for user postgres_user: 
+psql (16.9 (Ubuntu 16.9-0ubuntu0.24.04.1), server 15.13 (Debian 15.13-1.pgdg130+1))
+Type "help" for help.
+
+postgres_db=# 
+postgres_db=# 
+postgres_db=# 
+postgres_db=# select * from persons;
+ id | first_name | last_name 
+----+------------+-----------
+  1 | Ivan       | Ivanov
+  3 | Anna       | Smirnova
+  2 | Petr       | Updated
+(3 rows)
+
+postgres_db=# 
+
