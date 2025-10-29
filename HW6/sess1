@@ -1,0 +1,139 @@
+serge@tpx1c7:~$ 
+serge@tpx1c7:~$ 
+serge@tpx1c7:~$ sudo pg_lsclusters 
+[sudo] password for serge: 
+Ver Cluster Port Status Owner    Data directory              Log file
+16  main    5432 online postgres /var/lib/postgresql/16/main /var/log/postgresql/postgresql-16-main.log
+serge@tpx1c7:~$ sudo su - postgres
+postgres@tpx1c7:~$ psql
+psql (16.9 (Ubuntu 16.9-0ubuntu0.24.04.1))
+Type "help" for help.
+
+postgres=# \conninfo 
+You are connected to database "postgres" as user "postgres" via socket in "/var/run/postgresql" at port "5432".
+postgres=# CREATE DATABASE testdb;
+ERROR:  database "testdb" already exists
+postgres=# drop DATABASE testdb;
+ERROR:  database "testdb" is being accessed by other users
+DETAIL:  There is 1 other session using the database.
+postgres=# drop DATABASE testdb;
+DROP DATABASE
+postgres=# CREATE DATABASE testdb;
+CREATE DATABASE
+postgres=# \c testdb
+You are now connected to database "testdb" as user "postgres".
+testdb=# CREATE SCHEMA testnm;
+CREATE SCHEMA
+testdb=# CREATE TABLE t1(c1 integer);
+CREATE TABLE
+testdb=# INSERT INTO t1 values(1);
+INSERT 0 1
+testdb=# CREATE role readonly;
+ERROR:  role "readonly" already exists
+testdb=# grant connect on DATABASE testdb TO readonly;
+GRANT
+testdb=# grant usage on SCHEMA testnm to readonly;
+GRANT
+testdb=# grant SELECT on all TABLES in SCHEMA testnm TO readonly;
+GRANT
+testdb=# CREATE USER testuserread with password 'test123';
+CREATE ROLE
+testdb=# grant readonly TO testuserread;
+GRANT ROLE
+testdb=# SELECT * FROM t1;
+ c1 
+----
+  1
+(1 row)
+
+testdb=# \c testdb
+You are now connected to database "testdb" as user "postgres".
+testdb=# SELECT * FROM t1;
+ c1 
+----
+  1
+(1 row)
+
+testdb=# connin
+
+testdb=# \conninfo 
+You are connected to database "testdb" as user "postgres" via socket in "/var/run/postgresql" at port "5432".
+testdb=# \c testdb postgres
+You are now connected to database "testdb" as user "postgres".
+testdb=# DROP TABLE t1;
+DROP TABLE
+testdb=# CREATE TABLE testnm.t1(c1 integer);
+CREATE TABLE
+testdb=# INSERT INTO testnm.t1 values(1);
+INSERT 0 1
+testdb=# ALTER default privileges in SCHEMA testnm grant SELECT on TABLES to readonly; 
+ALTER DEFAULT PRIVILEGES
+testdb=# select * from pg_settings;
+testdb=# select count(*) from pg_settings where context = 'postmaster';
+ count 
+-------
+    57
+(1 row)
+
+testdb=# select * from pg_settings;
+testdb=# alter user postgres password '12345';
+ALTER ROLE
+testdb=# select current_setting('config_file');
+             current_setting             
+-----------------------------------------
+ /etc/postgresql/16/main/postgresql.conf
+(1 row)
+
+testdb=# select * from pg_settings;
+testdb=# \q
+postgres@tpx1c7:~$ pgbench -c 50 -j 2 -P 10 -T 60 test
+pgbench: error: connection to server on socket "/var/run/postgresql/.s.PGSQL.5432" failed: FATAL:  database "test" does not exist
+pgbench: error: could not create connection for setup
+postgres@tpx1c7:~$ psql
+psql (16.9 (Ubuntu 16.9-0ubuntu0.24.04.1))
+Type "help" for help.
+
+postgres=# CREATE DATABASE test;
+CREATE DATABASE
+postgres=# \q
+postgres@tpx1c7:~$ pgbench -c 50 -j 2 -P 10 -T 60 postgres
+pgbench (16.9 (Ubuntu 16.9-0ubuntu0.24.04.1))
+pgbench: error: could not count number of branches: ERROR:  relation "pgbench_branches" does not exist
+LINE 1: select count(*) from pgbench_branches
+                             ^
+pgbench: hint: Perhaps you need to do initialization ("pgbench -i") in database "postgres".
+postgres@tpx1c7:~$ pgbench -i test
+dropping old tables...
+NOTICE:  table "pgbench_accounts" does not exist, skipping
+NOTICE:  table "pgbench_branches" does not exist, skipping
+NOTICE:  table "pgbench_history" does not exist, skipping
+NOTICE:  table "pgbench_tellers" does not exist, skipping
+creating tables...
+generating data (client-side)...
+100000 of 100000 tuples (100%) done (elapsed 0.08 s, remaining 0.00 s)
+vacuuming...
+creating primary keys...
+done in 0.26 s (drop tables 0.00 s, create tables 0.05 s, client-side generate 0.10 s, vacuum 0.05 s, primary keys 0.05 s).
+postgres@tpx1c7:~$ pgbench -c 50 -j 2 -P 10 -T 60 test
+pgbench (16.9 (Ubuntu 16.9-0ubuntu0.24.04.1))
+starting vacuum...end.
+progress: 10.0 s, 184.5 tps, lat 261.008 ms stddev 292.557, 0 failed
+progress: 20.0 s, 189.9 tps, lat 265.209 ms stddev 289.971, 0 failed
+progress: 30.0 s, 181.9 tps, lat 273.013 ms stddev 273.529, 0 failed
+progress: 40.0 s, 183.2 tps, lat 273.137 ms stddev 280.704, 0 failed
+progress: 50.0 s, 183.2 tps, lat 274.966 ms stddev 345.456, 0 failed
+progress: 60.0 s, 177.6 tps, lat 278.559 ms stddev 303.573, 0 failed
+transaction type: <builtin: TPC-B (sort of)>
+scaling factor: 1
+query mode: simple
+number of clients: 50
+number of threads: 2
+maximum number of tries: 1
+duration: 60 s
+number of transactions actually processed: 11053
+number of failed transactions: 0 (0.000%)
+latency average = 271.853 ms
+latency stddev = 299.247 ms
+initial connection time = 51.486 ms
+tps = 183.480869 (without initial connection time)
+
