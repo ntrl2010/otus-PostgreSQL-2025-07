@@ -47,6 +47,7 @@ hw13-# ;
 
 выхожу из psql, переключаю unix-пользователя  на postgres, создаю каталог для бекапа, возвращаемся в БД
 
+```
 hw13=# \q
 serge@tpt480:~$ sudo  su - postgres
 postgres@tpt480:~$ mkdir /tmp/backup1
